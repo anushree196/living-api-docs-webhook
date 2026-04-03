@@ -368,16 +368,16 @@ def github_webhook():
     Main webhook endpoint — receives GitHub push events.
     GitHub sends this whenever code is pushed to any monitored repo.
     """
+     # 2. Only handle push events
+    event_type = request.headers.get("X-GitHub-Event", "")
+    if event_type == "ping":
+        return jsonify({"message": "pong — webhook connected!"}), 200
+        
     # 1. Verify signature
     signature = request.headers.get("X-Hub-Signature-256", "")
     if not verify_signature(request.data, signature):
         print("[Webhook] Invalid signature — rejected")
         return jsonify({"error": "Invalid signature"}), 401
-
-    # 2. Only handle push events
-    event_type = request.headers.get("X-GitHub-Event", "")
-    if event_type == "ping":
-        return jsonify({"message": "pong — webhook connected!"}), 200
 
     if event_type != "push":
         return jsonify({"message": f"Ignoring event: {event_type}"}), 200
