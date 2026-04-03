@@ -365,22 +365,29 @@ def health():
 @app.route("/webhook", methods=["POST"])
 def github_webhook():
     """
-    Main webhook endpoint — receives GitHub push events.
-    GitHub sends this whenever code is pushed to any monitored repo.
+    Main webhook endpoint — receives GitHub events.
     """
-     # 2. Only handle push events
+
+    # 1️⃣ Get event type FIRST
     event_type = request.headers.get("X-GitHub-Event", "")
+
+    # 2️⃣ Allow ping WITHOUT signature check
     if event_type == "ping":
+        print("[Webhook] Ping received")
         return jsonify({"message": "pong — webhook connected!"}), 200
-        
-    # 1. Verify signature
+
+    # 3️⃣ Verify signature for real events
     signature = request.headers.get("X-Hub-Signature-256", "")
-    if not verify_signature(request.data, signature):
+    payload = request.data  # 🔥 RAW BYTES (important)
+
+    if not verify_signature(payload, signature):
         print("[Webhook] Invalid signature — rejected")
         return jsonify({"error": "Invalid signature"}), 401
 
+    # 4️⃣ Only process push events
     if event_type != "push":
         return jsonify({"message": f"Ignoring event: {event_type}"}), 200
+
 
     # 3. Parse payload
     payload = request.get_json()
